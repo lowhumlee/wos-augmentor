@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "muv-bibtex"
+version = "0.1.0"
+description = "Harvest Web of Science identifiers + records for an organization, compute bibliometrics and export BibTeX for Omega-PSIR."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Research Office" }]
+dependencies = [
+  "requests>=2.31",
+  "PyYAML>=6.0",
+  "pydantic>=2.5",
+  "python-dotenv>=1.0",
+  "pandas>=2.1",
+  "openpyxl>=3.1",
+  "bibtexparser>=1.4,<2",
+  "tqdm>=4.66",
+  "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4", "pytest-mock>=3.12", "respx>=0.21"]
+
+[project.scripts]
+muv-bibtex = "muv_bibtex.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

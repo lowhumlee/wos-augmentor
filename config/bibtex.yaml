@@ -1,0 +1,90 @@
+# ============================================================================
+# bibtex.yaml — entry-type mapping, field names and escaping rules.
+# The WoS-native extra field NAMES follow the official Web of Science BibTeX
+# export ("Export query results -> BibTeX File").  STATUS: NEEDS-CHECK against
+# your Omega-PSIR importer — run a small test import before a production run
+# (see README "Omega-PSIR test import" and docs/API_ASSUMPTIONS.md §4).
+# ============================================================================
+
+entry_type_map:                    # WoS document type -> BibTeX entry type
+  Article: article
+  Review: article
+  Early Access: article
+  Letter: article
+  Editorial Material: article
+  Proceedings Paper: inproceedings
+  Book: book
+  Book Chapter: incollection
+  # everything else -> misc (unmapped types are logged)
+default_entry_type: misc
+log_unmapped_types: true
+
+citation_key:
+  template: "WOS{digits}"            # {digits} = numeric part of the UT (stable + unique)
+  fallback_prefix: "MUV"             # used only if a record has no UT at all (should not happen)
+
+standard_fields:                     # canonical BibTeX output names
+  author: author
+  title: title
+  journal: journal
+  booktitle: booktitle
+  year: year
+  volume: volume
+  number: number
+  pages: pages
+  doi: doi
+  issn: issn
+  eissn: eissn
+  isbn: isbn
+  publisher: publisher
+  address: address
+  abstract: abstract
+  keywords: keywords
+  language: language
+  url: url
+  note: note
+
+wos_native_field_names:              # extra fields, named as in WoS BibTeX export
+  unique_id: unique-id                                # UT, e.g. WOS:000123456700001
+  times_cited: times-cited
+  times_cited_source: times-cited-source              # provenance label added by this tool
+  retrieved: retrieved                                  # retrieval timestamp (added by this tool)
+  number_of_cited_references: number-of-cited-references
+  researcherid_numbers: researcherid-numbers
+  orcid_numbers: orcid-numbers
+  daisng_numbers: daisng-numbers                        # NC: not present in stock WoS export; safe extra
+  web_of_science_categories: web-of-science-categories
+  research_areas: research-areas
+  journal_iso: journal-iso
+  affiliation: affiliation
+  funding_acknowledgement: funding-acknowledgement
+  author_keywords: author-keywords
+  keywords_plus: keywords-plus
+  doc_delivery_number: doc-delivery-number
+  document_type: document-types                         # NC name choice; logged in validation report
+  language_of_doc: language                               # standard 'language' holds normalized value
+  open_access: open-access                                # from InCites OPEN_ACCESS / WoS oas_gold flag
+  edition: collection-edition                             # NC
+
+metrics_in_bib: false                # true -> JIF/quartile/CNCI also written into .bib
+metrics_bib_field_names:
+  impact_factor: incites-impact-factor
+  jnci: incites-jnci
+  cnci: incites-cnci
+  percentile: incites-percentile
+  quartile_derived: incites-percentile-band
+  jif_edition_year: incites-jif-edition-year
+
+escaping:
+  special_chars: ['&', '%', '$', '#', '_', '{', '}']   # escaped with a preceding backslash
+  protect_title_capitalization: false                  # true -> wrap title in {{...}}
+  encoding: utf-8                                      # no BOM
+  preserve_non_latin: true                             # Cyrillic etc. written verbatim (UTF-8)
+required_fields: [author, title, year]                 # validation asserts non-empty
+year_field_for_files: final_publication_year           # early-access drift handled in dedup phase
+file_naming:
+  yearly_template: "varna_{year}.bib"
+  master_file: "varna_all.bib"
+  manifest: "manifest.csv"
+  sidecar_metrics: "metrics_sidecar.csv"
+  validation_report: "validation_report.txt"
