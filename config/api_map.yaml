@@ -1,0 +1,206 @@
+# ============================================================================
+# api_map.yaml  —  ALL endpoint paths, parameter names, header names and JSON
+# field paths used by the tool.  Code reads from here; nothing is hard-coded.
+#
+# Provenance: extracted from the live OpenAPI definitions committed under docs/
+#   * docs/wos_openapi_snapshot.json      (Web of Science Expanded API v1.0.0-oas3)
+#   * docs/incites_openapi_snapshot.json  (InCites Document Level Metrics API v2.0)
+# Status tags: VFD = VERIFIED-FROM-DOCS, NC = NEEDS-CHECK (see docs/API_ASSUMPTIONS.md)
+# ============================================================================
+
+wos:
+  base_url: https://api.clarivate.com/api/wos        # VFD servers[].url
+  auth_header: X-ApiKey                              # VFD securitySchemes.key
+  accept: application/json                           # VFD
+  endpoints:                                         # VFD
+    search_get: "/"                                  # GET  ?databaseId&usrQuery&count&firstRecord...
+    search_post: "/"                                 # POST body {databaseId, usrQuery, count, firstRecord}
+    query_page: "/query/{query_id}"                  # GET  paging on an existing QueryID
+    record_ids: "/recordids/{query_id}"              # GET  UIDs only (quota-cheap)
+    record_by_uid: "/id/{unique_id}"                 # GET  single record
+    citation_report: "/citation-report/{query_id}"   # GET  (result sets < 10K records)
+  params:                                            # VFD (names & defaults from the spec)
+    database_id: databaseId
+    database_id_value: WOS
+    usr_query: usrQuery
+    count: count
+    max_count: 100                                   # VFD "must be 0-100"
+    first_record: firstRecord
+    max_first_record: 100000                         # VFD offset bound -> per-query retrieval cap
+    sort_field: sortField
+    view_field: viewField
+    option_view: optionView                          # FR | SR | FS
+    option_other: optionOther
+    edition: edition
+    publish_time_span: publishTimeSpan               # yyyy-mm-dd+yyyy-mm-dd
+    links: links
+    lang: lang
+  editions_default: "WOS+SCI,WOS+SSCI,WOS+AHCI,WOS+ISTP,WOS+IC"   # VFD allowed edition names
+  option_view_short_no_quota: SR                     # VFD "would not count against the quota"
+  # ---- response field paths (dot notation; [] = list step) -----------------
+  response_paths:                                    # VFD unless marked NC
+    query_result: QueryResult
+    records_found: QueryResult.RecordsFound
+    records_searched: QueryResult.RecordsSearched
+    query_id: QueryResult.QueryID
+    rec_list: Data.Records.records.REC
+    uid: UID
+    ut_prefix_strip: "WOS:"
+    names: static_data.summary.names.name[]
+    name_fields:
+      seq_no: seq_no
+      role: role
+      full_name: full_name
+      display_name: display_name
+      wos_standard: wos_standard
+      last_name: last_name
+      first_name: first_name
+      addr_no: addr_no                               # may be scalar OR list (normalised in code)
+      reprint: reprint
+      claim_status: claim_status
+      researcher_id: r_id
+      orcid: orcid_id                                # NC for optionView=SR payloads
+      daisng_id: daisng_id
+      preferred_name: preferred_name.full_name
+      data_item_ids: data-item-ids.data-item-id[]
+    addresses: static_data.fullrecord_metadata.addresses.address_name[]
+    address_fields:
+      addr_no: address_spec.addr_no
+      full_address: address_spec.full_address
+      organizations: address_spec.organizations.organization[]
+      suborganizations: address_spec.suborganizations.suborganization[]
+      city: address_spec.city
+      country: address_spec.country
+      street: address_spec.street
+      org_content: content                           # organization[].content
+      reprint_addresses: static_data.fullrecord_metadata.reprint_addresses.address_name[]
+    titles: static_data.summary.titles.title[]       # type in {item, container, book}
+    title_type: type
+    title_content: content
+    title_iso_attr: j                                # NC attribute presence varies by edition
+    pub_info: static_data.summary.pub_info
+    pubyear: static_data.summary.pub_info.pubyear
+    early_access_year: static_data.summary.pub_info.early_access_year
+    coverdate: static_data.summary.pub_info.coverdate
+    sortdate: static_data.summary.pub_info.sortdate
+    volume: static_data.summary.pub_info.vol
+    issue: static_data.summary.pub_info.issue
+    pages_begin: static_data.summary.pub_info.page.begin
+    pages_end: static_data.summary.pub_info.page.end
+    pages_content: static_data.summary.pub_info.page.content
+    page_count: static_data.summary.pub_info.page.page_count
+    pubtype: static_data.summary.pub_info.pubtype
+    doctypes: static_data.summary.doctypes.doctype[]
+    normalized_doctypes: static_data.fullrecord_metadata.normalized_doctypes.doctype
+    oas_gold: static_data.summary.pub_info.journal_oas_gold          # open access (partial signal)
+    item_ids: static_data.item.ids.content                           # doc-delivery-number / UT
+    keywords_author: static_data.fullrecord_metadata.keywords.keyword[]
+    keywords_plus: static_data.item.keywords_plus.keyword[]
+    subjects: static_data.fullrecord_metadata.category_info.subjects.subject[]   # ascatype WC|SC
+    language: static_data.fullrecord_metadata.normalized_languages.language.content
+    abstract_text: static_data.fullrecord_metadata.abstracts.abstract.abstract_text.p
+    abstract_text_alt: static_data.fullrecord_metadata.abstracts.abstract.abstract_text.content
+    publisher_name: static_data.summary.publishers.publisher.names.name.full_name
+    publisher_address: static_data.summary.publishers.publisher.address_spec.full_address
+    publisher_city: static_data.summary.publishers.publisher.address_spec.city
+    fund_text: static_data.fullrecord_metadata.fund_ack.fund_text.p
+    grant_agency: static_data.fullrecord_metadata.fund_ack.grants.grant.grant_agency_names.name[]
+    refs_count: static_data.fullrecord_metadata.refs.count
+    tc_dedup_total: dynamic_data.citation_related.tc_list_cc.dedup_total_count
+    tc_function: dynamic_data.citation_related.tc_list_cc.function_tc[]           # func_class CU|CR|CDE
+    tc_silo: dynamic_data.citation_related.tc_list.silo_tc[]                       # coll_id|local_count
+    identifiers: dynamic_data.cluster_related.identifiers.identifier[]             # {type,value}
+    identifier_type: type
+    identifier_value: value
+    doi_type_value: DOI                    # NC matched case-insensitively
+    issn_candidates:                             # NC defensive multi-path read
+      - dynamic_data.cluster_related.identifiers.identifier[type=ISSN].value
+      - static_data.item.ids.issn
+    eissn_candidates:
+      - dynamic_data.cluster_related.identifiers.identifier[type=EISSN].value
+      - static_data.item.ids.eissn
+    isbn_candidates:
+      - dynamic_data.cluster_related.identifiers.identifier[type=ISBN].value
+      - static_data.item.ids.isbn
+    date_created: dates.date_created
+    date_modified: dates.date_modified
+  # ---- quota / rate headers --------------------------------------------------
+  quota_headers:                                     # VFD (two documented examples), rest observed-only
+    annual_records_remaining: X-REC-AmtPerYear-Remaining
+    requests_per_sec_remaining: X-REQ-ReqPerSec-Remaining
+    capture_all_matching_prefix: ["X-REC-", "X-REQ-"]
+  # ---- query tags (field names inside usrQuery) ----------------------------
+  query_tags:                                        # NC — verified at runtime by `discover --verify-tags`
+    organization_enhanced: OG
+    address: AD
+    publication_year: PY
+    document_type: DT
+    researcher_id: RI
+    orcid: OI
+    daisng_id: DA
+    accession_number: UT
+  limits:
+    max_query_chars: 1800                            # NC conservative URL-length guard (POST fallback)
+    year_split_cap: 900                              # practical split threshold; adjust after `count`
+    month_split_enabled: true
+
+incites:
+  base_url: https://incites-api.clarivate.com/api/incites   # VFD servers[].url
+  auth_header: X-ApiKey                                      # VFD
+  accept: application/json                                   # VFD
+  format_segment: json                                       # VFD {format}=json|xml
+  ver: "2"                                                   # VFD "Always use 2"
+  endpoints:                                                  # VFD (complete published path list)
+    metrics_by_ut: /DocumentLevelMetricsByUT/{format}
+    metrics_by_ut_post: /DocumentLevelMetricsByUTforWOS/{format}
+    metrics_by_institution: /DocumentLevelMetricsByInstitutionId/{format}
+    metrics_by_institution_count: /DocumentLevelMetricsByInstitutionIdRecordCount/{format}
+    check_valid_uts: /CheckValidUTs/{format}
+    last_updated: /InCitesLastUpdated/{format}
+  params:                                                     # VFD
+    ut: UT
+    max_uts_per_request: 5000                                 # VFD POST body doc
+    max_uts_per_get: 1000                                      # NC GET URL-length guard (spec says "up to 1..." truncated)
+    year: year
+    starting_record: startingrecord
+    record_count: recordcount
+    max_record_count: 100                                      # VFD "between 1 and 100"
+    esci: esci
+    schema: schema
+    ver: ver
+  response_paths:                                             # VFD schemas Record / Percentile
+    envelope: api[]
+    function_name: api[].name
+    rval: api[].rval[]
+    accession_number: ACCESSION_NUMBER
+    document_type: DOCUMENT_TYPE
+    times_cited: TIMES_CITED
+    impact_factor: IMPACT_FACTOR
+    jnci: JNCI
+    journal_expected_citations: JOURNAL_EXPECTED_CITATIONS
+    avg_cnci: AVG_CNCI
+    harmean_cat_exp_citation: HARMEAN_CAT_EXP_CITATION
+    open_access: OPEN_ACCESS
+    esi_highly_cited: ESI_HIGHLY_CITED_PAPER
+    esi_hot: ESI_HOT_PAPER
+    intl_collab: IS_INTERNATIONAL_COLLAB
+    institution_collab: IS_INSTITUTION_COLLAB
+    industry_collab: IS_INDUSTRY_COLLAB
+    percentile: PERCENTILE[]
+    catpercentile: PERCENTILE[].CATPERCENTILE
+    is_best_percentile: PERCENTILE[].IS_BEST
+    percentile_subject: PERCENTILE[].SUBJECT
+    percentile_code: PERCENTILE[].CODE
+    cnci: PERCENTILE[].CNCI
+    record_count_value: api[].rval[].RECORD_COUNT
+    incites_last_updated: api[].rval[].INCITES_LAST_UPDATED
+    wos_last_updated: api[].rval[].WOS_LAST_UPDATED
+  # Fields the subscription may or may not populate -> empty + warning if missing.
+  optional_indicators: [IMPACT_FACTOR, JNCI, AVG_CNCI, OPEN_ACCESS, PERCENTILE]
+  discover_specs:                                              # URLs tried by `discover`
+    - https://developer.clarivate.com/apis/incites/swagger
+    - https://developer.clarivate.com/apis/incites/openapi
+    - https://incites-api.clarivate.com/api/incites/swagger.json
+    - https://incites-api.clarivate.com/api/incites/openapi.json
+  quota_headers:
+    capture_all_matching_prefix: ["X-REC-", "X-REQ-", "X-Rate"]   # NC none documented

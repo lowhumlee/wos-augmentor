@@ -1,0 +1,68 @@
+# ============================================================================
+# config.yaml — organisation, time span, toggles, resources.
+# Secrets come ONLY from environment (WOS_API_KEY / INCITES_API_KEY) or .env.
+# ============================================================================
+schema_version: 1
+
+organization:
+  display_name: Medical University of Varna
+  country: Bulgaria
+  # Organization-Enhanced (OG=) variants — primary route. Add former names here.
+  name_variants:
+    - "Medical University of Varna"
+    - "Medical University - Varna"
+    - "Medical Univ Varna"
+    - "Varna Medical University"
+  # Optional AD= route (disabled by default): free-text address terms ANDed.
+  address_route:
+    enabled: false
+    query: "AD=((\"Varna\" AND \"Bulgaria\") NEAR/3 \"medical\")"
+  incites_institution_note: >
+    InCites resolves the institution from the API key itself; there is no
+    institution parameter (VERIFIED-FROM-DOCS). Nothing to configure here.
+
+time_span:
+  start_year: 1900          # configurable; full history by default
+  end_year: 2026            # today's date is October 2026
+  min_incites_year: 1980    # VERIFIED-FROM-DOCS: InCites API rejects years < 1980
+
+toggles:
+  include_non_org_connected_records: true   # Phase 2: identifier-only records in export?
+  harvest_view_mode: auto                   # auto|sr|fr  (SR = quota-free short record view)
+  fetch_full_records_once: true             # FR pass over deduped set for BibTeX completeness
+  force_refresh: false                      # bypass on-disk response cache
+
+resources:
+  concurrency: 4            # bounded worker threads per client (conservative default)
+  timeout_seconds: 60
+  max_retries: 6            # exponential backoff + jitter on 429/5xx/timeout
+  backoff_base_seconds: 1.0
+  backoff_max_seconds: 120.0
+  page_size: 100            # <= wos.params.max_count (100, VERIFIED-FROM-DOCS)
+  politeness_delay_ms: 150  # sleep between requests per worker
+
+paths:
+  work_dir: .work           # versioned intermediates + raw-response cache
+  out_dir: out              # final deliverables (bib, stats, reports)
+
+quota:
+  warn_when_estimated_exceeds_remaining: true
+  dry_run_uses_short_view: true             # count command uses optionView=SR/count=0 style probes
+
+statistics:
+  h_index_formula: >
+    Local h-index: sort the per-record times-cited values of an entity in
+    descending order; h is the largest integer such that at least h records
+    have >= h citations each (h = max{i : tc_i >= i}). Source: WoS Core
+    Collection dedup_total_count unless overridden by InCites TIMES_CITED.
+  citation_source_label_wos: WOS_CC_dedup_total_count
+  citation_source_label_incites: InCites.TIMES_CITED
+  quartile_from_percentile:
+    enabled: true            # DERIVED band from InCites CATPERCENTILE (NOT official JCR quartile)
+    thresholds: { q1: 75.0, q2: 50.0, q3: 25.0 }   # pct > q1 -> Q1; > q2 -> Q2; > q3 -> Q3; else Q4
+  jif_edition_year_label: "" # leave empty unless you know the JCR edition your subscription serves
+
+expansion:
+  chunk_max_query_chars: 1800     # respects wos.limits.max_query_chars by default
+  split_by: year                  # year | none (safe re-split for OR chunks)
+  identifier_tags: null           # null -> use config/api_map.yaml wos.query_tags
