@@ -74,13 +74,21 @@ class JsonLineFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False)
 
 
-def setup_logging(log_dir: Path | str, *, level: int = logging.INFO, verbose: bool = False) -> logging.Logger:
+def setup_logging(
+    log_dir: Path | str,
+    *,
+    level: int = logging.INFO,
+    verbose: bool = False,
+    log_file: Path | None = None,
+) -> logging.Logger:
     """Configure root logging once and return the package logger.
 
     Args:
         log_dir: Directory for ``run.log`` (created if needed).
         level: Console level; ``DEBUG`` when *verbose*.
         verbose: Enable debug console output.
+        log_file: Optional extra plain-text log file (in addition to the
+            JSON-lines ``run.log`` written under *log_dir*).
 
     Returns:
         The ``muv_bibtex`` package logger.
@@ -106,6 +114,15 @@ def setup_logging(log_dir: Path | str, *, level: int = logging.INFO, verbose: bo
 
     root.addHandler(cons)
     root.addHandler(file_h)
+
+    if log_file is not None:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        extra_h = logging.FileHandler(log_file, encoding="utf-8")
+        extra_h.setLevel(logging.DEBUG)
+        extra_h.setFormatter(logging.Formatter(_CONSOLE_FMT, _DATE_FMT))
+        extra_h.addFilter(RedactingFilter())
+        root.addHandler(extra_h)
+
     root._muv_configured = True  # type: ignore[attr-defined]
 
     # Third-party noise reduction.

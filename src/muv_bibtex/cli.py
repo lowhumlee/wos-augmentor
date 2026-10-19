@@ -22,7 +22,7 @@ from .errors import (
     ApiResponseError,
     CompletenessError,
     CredentialsError,
-    MuVError,
+    MuvError,
     PipelineStateError,
 )
 from .logging_setup import setup_logging
@@ -56,11 +56,11 @@ def _cfg(config_dir: str, work_dir: Optional[str], log_level: Optional[str], log
         raise typer.Exit(code=EXIT_USAGE)
     if work_dir:
         cfg.paths.work_dir = Path(work_dir)
-    setup_logging(level=log_level or cfg.logging.level,
-                  quiet=cfg.logging.quiet_console,
-                  to_console=cfg.logging.to_console,
-                  log_file=Path(log_file) if log_file else cfg.logging.file_path,
-                  max_bytes=cfg.logging.max_bytes, backups=cfg.logging.backup_count)
+    level = getattr(logging, (log_level or "INFO").upper(), logging.INFO)
+    setup_logging(cfg.paths.work_dir,
+                  level=level,
+                  verbose=(level <= logging.DEBUG),
+                  log_file=Path(log_file) if log_file else None)
     return cfg
 
 
@@ -100,7 +100,7 @@ def discover(
         _fail(exc, EXIT_CREDENTIALS)
     except ApiAuthenticationError as exc:
         _fail(exc, EXIT_AUTH)
-    except MuVError as exc:
+    except MuvError as exc:
         _fail(exc, EXIT_UNEXPECTED)
     tbl = Table(title="Discovery results")
     tbl.add_column("check"); tbl.add_column("result")
@@ -429,7 +429,7 @@ def main() -> None:  # entry point
         app()
     except typer.Exit:
         raise
-    except MuVError as exc:
+    except MuvError as exc:
         print(f"fatal: {exc}", file=sys.stderr)
         sys.exit(EXIT_UNEXPECTED)
 
